@@ -51,22 +51,29 @@ Sub CreateDEDirectories()
     ' Set file system object
     Set fs = CreateObject("Scripting.FileSystemObject")
 
-    ' Loop through each selected cell instead of column A
+    ' Loop through each selected cell
     For Each cell In Selection
         If Not IsEmpty(cell.Value) And Trim(cell.Value) <> "" Then
             directoryName = baseFolderPath & "DE" & Trim(cell.Value)
-            If Not fs.FolderExists(directoryName) Then
-                fs.CreateFolder directoryName
+            
+            ' Skip if folder already exists
+            If fs.FolderExists(directoryName) Then
+                Debug.Print "Skipped existing folder: " & directoryName
+                GoTo NextCell
             End If
 
+            ' Create new folder
+            fs.CreateFolder directoryName
+            
             ' If reference folder is selected, copy its contents
             If refFolderPath <> "" Then
                 CopyFolderContents refFolderPath, directoryName
             End If
         End If
+NextCell:
     Next cell
 
-    MsgBox "Folders created successfully!", vbInformation
+    MsgBox "Folders created successfully (existing ones were skipped).", vbInformation
 End Sub
 
 Sub CopyFolderContents(sourcePath As String, targetPath As String)
@@ -79,11 +86,13 @@ Sub CopyFolderContents(sourcePath As String, targetPath As String)
 
     ' Copy files
     For Each file In fso.GetFolder(sourcePath).Files
-        fso.CopyFile file.Path, targetPath & "\" & file.Name, True
+        fso.CopyFile file.Path, targetPath & "\" & file.Name, False ' FALSE = do not overwrite
     Next file
 
     ' Copy subfolders recursively
     For Each subfolder In fso.GetFolder(sourcePath).SubFolders
-        fso.CopyFolder subfolder.Path, targetPath & "\" & subfolder.Name, True
+        If Not fso.FolderExists(targetPath & "\" & subfolder.Name) Then
+            fso.CopyFolder subfolder.Path, targetPath & "\" & subfolder.Name, False ' FALSE = do not overwrite
+        End If
     Next subfolder
 End Sub
