@@ -7,9 +7,10 @@ Sub CreateDEDirectories()
     Dim selectedPath As FileDialog
     Dim refPathDialog As FileDialog
     Dim useTemplate As VbMsgBoxResult
-    Dim overwriteFolders As VbMsgBoxResult
+    Dim overwriteOption As VbMsgBoxResult
+    Dim sourceFolder As Object
     Dim file As Object, subfolder As Object
-    Dim sourceFolder As Object, targetFolderPath As String
+    Dim targetFolderPath As String
 
     ' Prompt user to select base folder
     Set selectedPath = Application.FileDialog(msoFileDialogFolderPicker)
@@ -26,7 +27,6 @@ Sub CreateDEDirectories()
 
     ' Ask if reference folder will be used
     useTemplate = MsgBox("Would you like to use a reference directory to copy into each new folder?", vbYesNo + vbQuestion, "Use Template")
-
     If useTemplate = vbYes Then
         Set refPathDialog = Application.FileDialog(msoFileDialogFolderPicker)
         With refPathDialog
@@ -43,29 +43,30 @@ Sub CreateDEDirectories()
         refFolderPath = ""
     End If
 
-    ' Ask once if folders should be overwritten
-    overwriteFolders = MsgBox("Some folders may already exist." & vbCrLf & _
-                              "Would you like to overwrite them?", _
-                              vbYesNoCancel + vbQuestion, "Overwrite Existing Folders?")
-    If overwriteFolders = vbCancel Then
+    ' Ask whether to overwrite existing folders
+    overwriteOption = MsgBox("Some folders may already exist." & vbCrLf & _
+                             "Would you like to overwrite existing folders?", vbYesNoCancel + vbQuestion, "Overwrite Existing Folders?")
+    If overwriteOption = vbCancel Then
         MsgBox "Operation cancelled by user.", vbInformation
         Exit Sub
     End If
 
+    ' Set file system object
     Set fs = CreateObject("Scripting.FileSystemObject")
+    If refFolderPath <> "" Then Set sourceFolder = fs.GetFolder(refFolderPath)
 
-    ' Loop through selection
+    ' Loop through selected cells
     For Each cell In Selection
         If Not IsEmpty(cell.Value) And Trim(cell.Value) <> "" Then
             directoryName = baseFolderPath & "DE" & Trim(cell.Value)
 
             If fs.FolderExists(directoryName) Then
-                If overwriteFolders = vbYes Then
+                If overwriteOption = vbYes Then
                     On Error Resume Next
                     fs.DeleteFolder directoryName, True
                     On Error GoTo 0
                     fs.CreateFolder directoryName
-                Else
+                ElseIf overwriteOption = vbNo Then
                     Debug.Print "Skipped existing folder: " & directoryName
                     GoTo NextCell
                 End If
@@ -73,9 +74,8 @@ Sub CreateDEDirectories()
                 fs.CreateFolder directoryName
             End If
 
-            ' Copy reference contents if selected
+            ' Copy reference contents
             If refFolderPath <> "" Then
-                Set sourceFolder = fs.GetFolder(refFolderPath)
                 targetFolderPath = directoryName
 
                 ' Copy files
@@ -83,7 +83,7 @@ Sub CreateDEDirectories()
                     fs.CopyFile file.Path, targetFolderPath & "\" & file.Name, True
                 Next file
 
-                ' Copy subfolders recursively
+                ' Copy subfolders
                 For Each subfolder In sourceFolder.SubFolders
                     fs.CopyFolder subfolder.Path, targetFolderPath & "\" & subfolder.Name, True
                 Next subfolder
@@ -92,5 +92,5 @@ Sub CreateDEDirectories()
 NextCell:
     Next cell
 
-    MsgBox "Folder creation complete.", vbInformation
+    MsgBox "Folders created successfully!", vbInformation
 End Sub
