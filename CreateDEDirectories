@@ -51,14 +51,14 @@ Sub CreateDEDirectories()
     ' Set file system object
     Set fs = CreateObject("Scripting.FileSystemObject")
 
-    ' Loop through each used cell in Column A
-    For Each cell In ActiveSheet.Range("A1:A" & ActiveSheet.Cells(Rows.Count, "A").End(xlUp).Row)
-        If Trim(cell.Value) <> "" Then
+    ' Loop through each selected cell instead of column A
+    For Each cell In Selection
+        If Not IsEmpty(cell.Value) And Trim(cell.Value) <> "" Then
             directoryName = baseFolderPath & "DE" & Trim(cell.Value)
             If Not fs.FolderExists(directoryName) Then
                 fs.CreateFolder directoryName
             End If
-            
+
             ' If reference folder is selected, copy its contents
             If refFolderPath <> "" Then
                 CopyFolderContents refFolderPath, directoryName
