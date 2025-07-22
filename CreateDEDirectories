@@ -1,0 +1,39 @@
+Sub CreateDEDirectories()
+    Dim folderPath As String
+    Dim cell As Range
+    Dim directoryName As String
+    Dim fs As Object
+    Dim selectedPath As FileDialog
+
+    ' Prompt user to select a folder
+    Set selectedPath = Application.FileDialog(msoFileDialogFolderPicker)
+    With selectedPath
+        .Title = "Select folder to create DEV directories"
+        .AllowMultiSelect = False
+        If .Show <> -1 Then
+            MsgBox "Operation cancelled.", vbInformation
+            Exit Sub
+        End If
+        folderPath = .SelectedItems(1)
+    End With
+
+    ' Ensure folder path ends with backslash
+    If Right(folderPath, 1) <> "\" Then
+        folderPath = folderPath & "\"
+    End If
+
+    ' Set file system object
+    Set fs = CreateObject("Scripting.FileSystemObject")
+
+    ' Loop through each used cell in Column A
+    For Each cell In ActiveSheet.Range("A1:A" & ActiveSheet.Cells(Rows.Count, "A").End(xlUp).Row)
+        If Trim(cell.Value) <> "" Then
+            directoryName = folderPath & "DE" & Trim(cell.Value)
+            If Not fs.FolderExists(directoryName) Then
+                fs.CreateFolder directoryName
+            End If
+        End If
+    Next cell
+
+    MsgBox "Folders created successfully!", vbInformation
+End Sub
